@@ -1,7 +1,7 @@
 {
   "name": "aseview",
   "version": "0.1.0",
-  "description": "View Aseprite files in the browser and export sprite sheets.",
+  "description": "View Aseprite files in the browser, export sprite sheets, and load them straight into Phaser.",
   "keywords": [
     "aseprite",
     "ase",
@@ -32,19 +32,40 @@
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "build:cli": "tsc -p tsconfig.build.json",
-    "prepare": "tsc -p tsconfig.build.json",
-    "prepublishOnly": "tsc -p tsconfig.build.json && npm test"
+    "build:lib": "tsc -p tsconfig.build.json",
+    "build:cli": "npm run build:lib",
+    "prepare": "npm run build:lib",
+    "prepublishOnly": "npm run build:lib && npm test"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@types/node": "^20.19.43",
     "esbuild": "^0.28.2",
     "eslint": "^9.39.5",
+    "phaser": "^3.90.0",
     "prettier": "^3.9.10",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.72.0",
     "vitest": "^4.1.12"
+  },
+  "peerDependencies": {
+    "phaser": "^3.80.0 || ^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "phaser": {
+      "optional": true
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./phaser": {
+      "types": "./dist/phaser.d.ts",
+      "default": "./dist/phaser.js"
+    },
+    "./package.json": "./package.json"
   },
   "bin": {
     "aseview": "dist/bin.js"

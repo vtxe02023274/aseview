@@ -28,6 +28,36 @@ this.anims.createFromAseprite('slime'); // 會建出 idle、jump 兩個動畫
 
 PixiJS 等讀 TexturePacker／Aseprite JSON 的引擎也能讀。
 
+## Phaser 載入器
+
+`aseview/phaser` 讓 Phaser 3（3.80 以上）和 Phaser 4 直接讀 `.aseprite` 檔，不用先匯出。Phaser 是選用的 peer dependency，只用指令列不需要裝。
+
+```sh
+npm install aseview phaser
+```
+
+```js
+import * as Phaser from 'phaser';
+import { AsepritePlugin } from 'aseview/phaser';
+
+new Phaser.Game({
+  pixelArt: true,
+  plugins: { global: [{ key: 'AsepritePlugin', plugin: AsepritePlugin, start: true }] },
+  scene: {
+    preload() {
+      this.load.aseprite('hero', 'hero.aseprite');
+    },
+    create() {
+      this.add.sprite(100, 100, 'hero').play('hero.walk'); // 「walk」標籤
+    },
+  },
+});
+```
+
+- 材質 `hero` 每個 Aseprite 影格一格，從 0 開始編號、大小跟 sprite 一樣，所以 `this.add.image(x, y, 'hero', 3)` 也能用。影格只畫看得見的圖層，跟 Aseprite 匯出一樣。
+- 每個標籤建成一個動畫，名稱是 `<材質>.<標籤>`，用檔案裡每格的時間，照 forward／reverse／ping-pong／ping-pong reverse 的順序，並照標籤的重複次數播放（0 是一直循環）。沒有標籤的 sprite 會建一個跟材質同名、循環所有影格的動畫。
+- `this.load.aseprite('hero', 'hero.png', 'hero.json')` 仍然交給 Phaser 原本的載入器，匯出的 sheet 照常能用。
+
 ## 指令列
 
 不用裝 Aseprite，用 Node.js 20 以上就能批次匯出，適合放進建置流程：
@@ -65,7 +95,7 @@ npm test
 npm run lint
 ```
 
-`src/ase.ts` 是讀檔，`src/composite.ts` 合成影格，`src/sheet.ts` 排 sprite sheet，都不依賴瀏覽器，可以在 Node 裡用（解壓縮傳 `zlib.inflateSync` 進去）。
+`src/ase.ts` 是讀檔，`src/composite.ts` 合成影格，`src/sheet.ts` 排 sprite sheet，都不依賴瀏覽器，可以在 Node 裡用（解壓縮傳 `zlib.inflateSync` 進去），套件裡用 `import { readAse, compositeFrame } from 'aseview'` 取得。`src/phaser.ts` 是 Phaser 載入器，`src/anims.ts` 把標籤轉成它的動畫。
 
 ## 授權
 
