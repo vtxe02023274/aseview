@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,6 +6,7 @@ import { deflateSync, inflateSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { run } from '../src/cli.js';
 import { encodePng } from '../src/png.js';
+import { aseFile, cel, frame, layer, tags } from './build.js';
 
 describe('encodePng', () => {
   it('writes valid chunks with the right CRCs', () => {
@@ -71,6 +72,36 @@ describe('cli', () => {
     );
     const body = JSON.parse(readFileSync(join(out, 'demo-body.json'), 'utf8'));
     expect(body.meta.image).toBe('demo-body.png');
+  });
+
+  it('keeps GIFs named after tags inside the output folder', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'aseview-'));
+    const file = join(root, 'tags.aseprite');
+    writeFileSync(
+      file,
+      aseFile(1, 1, [
+        frame([
+          layer('a'),
+          cel(0, [255, 0, 0, 255]),
+          tags([
+            { name: 'x/../../escaped', from: 0, to: 0 },
+            { name: 'a:b', from: 1, to: 1 },
+            { name: 'walk/run', from: 0, to: 1 },
+          ]),
+        ]),
+        frame([cel(0, [0, 255, 0, 255])]),
+      ]),
+    );
+    const out = join(root, 'a', 'b');
+    expect(await run([file, '-o', out, '--gif'], () => {})).toBe(0);
+    expect(readdirSync(out).sort()).toEqual([
+      'tags-a_b.gif',
+      'tags-walk_run.gif',
+      'tags-x_.._.._escaped.gif',
+      'tags.json',
+      'tags.png',
+    ]);
+    expect(readdirSync(root).sort()).toEqual(['a', 'tags.aseprite']);
   });
 
   it('reports files it cannot read and bad options', async () => {
