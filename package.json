@@ -12,7 +12,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build:cli": "tsc -p tsconfig.build.json",
+    "prepare": "tsc -p tsconfig.build.json"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -23,5 +25,11 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.72.0",
     "vitest": "^4.1.12"
-  }
+  },
+  "bin": {
+    "aseview": "dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ]
 }

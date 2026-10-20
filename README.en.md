@@ -28,6 +28,22 @@ this.anims.createFromAseprite('slime'); // creates the idle and jump animations
 
 PixiJS and other engines that read TexturePacker or Aseprite JSON work too.
 
+## Command line
+
+Batch export without Aseprite installed, with Node.js 20 or later, which fits a build pipeline:
+
+```sh
+npx github:vtxe02023274/aseview hero.aseprite -o build/sprites --columns 8 --gif
+# hero.png, hero.json (Aseprite Array format) and one GIF per tag
+```
+
+| Option            | Effect                                       |
+| ----------------- | -------------------------------------------- |
+| `-o, --out <dir>` | output folder, defaults to next to the file  |
+| `--columns <n>`   | frames per row in the sheet, default one row |
+| `--gif`           | also write one GIF per tag                   |
+| `--hide <layer>`  | leave a layer out by name, can be repeated   |
+
 ## Limits
 
 Tested with the sprites in the Aseprite source tests (indexed, grayscale, tilemaps, groups, z-order, tags, slices, properties) and LibreSprite's splash.ase (54 layers), all of which read and composite correctly.

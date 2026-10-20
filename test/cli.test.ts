@@ -1,0 +1,49 @@
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { deflateSync, inflateSync } from 'node:zlib';
+import { describe, expect, it } from 'vitest';
+import { run } from '../src/cli.js';
+import { encodePng } from '../src/png.js';
+
+describe('encodePng', () => {
+  it('writes valid chunks with the right CRCs', () => {
+    const rgba = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 128, 0, 0, 255, 0, 1, 2, 3, 4]);
+    const png = encodePng(2, 2, rgba, (d) => deflateSync(d));
+    const view = new DataView(png.buffer, png.byteOffset);
+    expect(Array.from(png.subarray(0, 8))).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
+    expect(view.getUint32(16)).toBe(2);
+    expect(view.getUint32(20)).toBe(2);
+    // IEND always ends with the same CRC.
+    expect(view.getUint32(png.length - 4)).toBe(0xae426082);
+    // IDAT holds each row prefixed by filter 0.
+    const idatLength = view.getUint32(33);
+    const raw = inflateSync(png.subarray(41, 41 + idatLength));
+    expect(Array.from(raw)).toEqual([0, ...rgba.subarray(0, 8), 0, ...rgba.subarray(8)]);
+  });
+});
+
+describe('cli', () => {
+  it('exports a sheet, its JSON and one GIF per tag', async () => {
+    const out = mkdtempSync(join(tmpdir(), 'aseview-'));
+    const lines: string[] = [];
+    const demo = fileURLToPath(new URL('../public/demo.aseprite', import.meta.url));
+    expect(
+      await run([demo, '-o', out, '--columns', '3', '--gif', '--hide', 'shadow'], (s) =>
+        lines.push(s),
+      ),
+    ).toBe(0);
+    expect(lines[0]).toMatch(/6 frames -> demo\.png, demo\.json, demo-idle\.gif, demo-jump\.gif$/);
+    const json = JSON.parse(readFileSync(join(out, 'demo.json'), 'utf8'));
+    expect(json.meta.size).toEqual({ w: 96, h: 64 });
+    expect(readFileSync(join(out, 'demo-jump.gif')).subarray(0, 6).toString()).toBe('GIF89a');
+  });
+
+  it('reports files it cannot read and bad options', async () => {
+    const lines: string[] = [];
+    expect(await run(['does-not-exist.aseprite'], (s) => lines.push(s))).toBe(1);
+    expect(await run(['x', '--columns', '0'], (s) => lines.push(s))).toBe(2);
+    expect(await run([], (s) => lines.push(s))).toBe(2);
+  });
+});

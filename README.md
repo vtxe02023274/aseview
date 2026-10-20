@@ -28,6 +28,22 @@ this.anims.createFromAseprite('slime'); // 會建出 idle、jump 兩個動畫
 
 PixiJS 等讀 TexturePacker／Aseprite JSON 的引擎也能讀。
 
+## 指令列
+
+不用裝 Aseprite，用 Node.js 20 以上就能批次匯出，適合放進建置流程：
+
+```sh
+npx github:vtxe02023274/aseview hero.aseprite -o build/sprites --columns 8 --gif
+# hero.png、hero.json（Aseprite Array 格式）、每個標籤一個 GIF
+```
+
+| 參數              | 作用                             |
+| ----------------- | -------------------------------- |
+| `-o, --out <dir>` | 輸出資料夾，預設跟原檔同一層     |
+| `--columns <n>`   | sheet 每排幾格，預設全部排一排   |
+| `--gif`           | 每個標籤各輸出一個 GIF           |
+| `--hide <layer>`  | 依名稱略過某個圖層，可以重複使用 |
+
 ## 支援範圍
 
 用 Aseprite 原始碼裡的測試 sprite（索引色、灰階、tilemap、群組、z-order、標籤、切片、屬性）和 LibreSprite 的 splash.ase（54 圖層）測過，都能正確讀取與合成。
