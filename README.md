@@ -30,6 +30,8 @@ PixiJS 等讀 TexturePacker／Aseprite JSON 的引擎也能讀。
 
 ## 支援範圍
 
+用 Aseprite 原始碼裡的測試 sprite（索引色、灰階、tilemap、群組、z-order、標籤、切片、屬性）和 LibreSprite 的 splash.ase（54 圖層）測過，都能正確讀取與合成。
+
 混合模式支援 normal、multiply、screen、darken、lighten、difference、addition、subtract，其他模式先當 normal 畫，圖層清單會標出來。參考圖層（reference layer）跟 Aseprite 匯出時一樣不畫。外部 tileset、外部調色盤不會讀。
 
 ## 示範檔

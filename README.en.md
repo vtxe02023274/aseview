@@ -30,6 +30,8 @@ PixiJS and other engines that read TexturePacker or Aseprite JSON work too.
 
 ## Limits
 
+Tested with the sprites in the Aseprite source tests (indexed, grayscale, tilemaps, groups, z-order, tags, slices, properties) and LibreSprite's splash.ase (54 layers), all of which read and composite correctly.
+
 Blend modes normal, multiply, screen, darken, lighten, difference, addition and subtract are supported; others are drawn as normal and marked in the layer list. Reference layers are not drawn, same as an Aseprite export. External tilesets and palettes are not loaded.
 
 ## Demo file
