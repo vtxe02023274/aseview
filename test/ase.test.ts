@@ -103,6 +103,9 @@ describe('sheet', () => {
       { name: 'idle', from: 0, to: 1, direction: 'pingpong' },
       { name: 'jump', from: 2, to: 5, direction: 'forward' },
     ]);
+    // Part of a column rounds down instead of placing frames between cells.
+    expect(layoutSheet(s, 2.5)).toMatchObject({ columns: 2, rows: 3, width: 64, height: 96 });
+    expect(layoutSheet(s, 2.5).positions[1]).toEqual({ x: 32, y: 0 });
   });
 
   it('plays tags in every direction', () => {

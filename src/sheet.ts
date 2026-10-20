@@ -10,10 +10,10 @@ export interface SheetLayout {
   positions: { x: number; y: number }[];
 }
 
-/** Lays frames out left to right, wrapping after `columns` frames. */
+/** Lays frames out left to right, wrapping after `columns` frames (rounded down). */
 export function layoutSheet(sprite: Sprite, columns = sprite.frames.length): SheetLayout {
   const count = sprite.frames.length;
-  const cols = Math.max(1, Math.min(columns, count));
+  const cols = Math.max(1, Math.min(Math.floor(columns), count));
   const rows = Math.ceil(count / cols);
   return {
     columns: cols,
