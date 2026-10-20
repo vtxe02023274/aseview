@@ -37,14 +37,14 @@ npx github:vtxe02023274/aseview hero.aseprite -o build/sprites --columns 8 --gif
 # hero.png, hero.json (Aseprite Array format) and one GIF per tag
 ```
 
-| Option            | Effect                                                                                   |
-| ----------------- | ---------------------------------------------------------------------------------------- |
-| `-o, --out <dir>` | output folder, defaults to next to the file                                              |
-| `--columns <n>`   | frames per row in the sheet, default one row                                             |
-| `--scale <n>`     | enlarge every pixel n times (nearest neighbor, for pixel art), the JSON follows          |
-| `--split-layers`  | also write a sheet and JSON for each layer on its own (stacked they give the full sheet) |
-| `--gif`           | also write one GIF per tag                                                               |
-| `--hide <layer>`  | leave a layer out by name, can be repeated                                               |
+| Option            | Effect                                                                                                                                   |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `-o, --out <dir>` | output folder, defaults to next to the file                                                                                              |
+| `--columns <n>`   | frames per row in the sheet, default one row                                                                                             |
+| `--scale <n>`     | enlarge every pixel n times (nearest neighbor, for pixel art), the JSON follows                                                          |
+| `--split-layers`  | also write a sheet and JSON for each layer on its own (stacked they give the full sheet), named after the layer with -2 added on clashes |
+| `--gif`           | also write one GIF per tag                                                                                                               |
+| `--hide <layer>`  | leave a layer out by name, can be repeated                                                                                               |
 
 ## Limits
 

@@ -74,6 +74,30 @@ describe('cli', () => {
     expect(body.meta.image).toBe('demo-body.png');
   });
 
+  it('keeps layer names in any script and never overwrites a split layer', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'aseview-'));
+    const file = join(root, 'cjk.aseprite');
+    writeFileSync(
+      file,
+      aseFile(1, 1, [
+        frame([
+          layer('頭'),
+          layer('身體'),
+          layer('a b'),
+          layer('A B'),
+          ...[0, 1, 2, 3].map((i) => cel(i, [255, 0, 0, 255])),
+        ]),
+      ]),
+    );
+    const out = join(root, 'out');
+    expect(await run([file, '-o', out, '--split-layers'], () => {})).toBe(0);
+    expect(
+      readdirSync(out)
+        .filter((f) => f.endsWith('.png'))
+        .sort(),
+    ).toEqual(['cjk-A B-2.png', 'cjk-a b.png', 'cjk-身體.png', 'cjk-頭.png', 'cjk.png']);
+  });
+
   it('keeps GIFs named after tags inside the output folder', async () => {
     const root = mkdtempSync(join(tmpdir(), 'aseview-'));
     const file = join(root, 'tags.aseprite');
