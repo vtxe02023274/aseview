@@ -48,6 +48,20 @@ describe('readAse', () => {
     );
     await expect(readAse(bytes.subarray(0, 300), inflate)).rejects.toThrow(/unexpected end/);
   });
+
+  it('rejects sprites without frames and tags past the last frame', async () => {
+    await expect(readAse(build.aseFile(4, 4, []), inflate)).rejects.toThrow(/no frames/);
+    const tagged = build.aseFile(1, 1, [
+      build.frame([
+        build.layer('a'),
+        build.cel(0, [255, 0, 0, 255]),
+        build.tags([{ name: 'run', from: 0, to: 3 }]),
+      ]),
+    ]);
+    await expect(readAse(tagged, inflate)).rejects.toThrow(
+      new AseError('tag "run" goes past the last frame'),
+    );
+  });
 });
 
 describe('compositeFrame', () => {
