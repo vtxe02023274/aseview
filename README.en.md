@@ -33,7 +33,7 @@ PixiJS and other engines that read TexturePacker or Aseprite JSON work too.
 Batch export without Aseprite installed, with Node.js 20 or later, which fits a build pipeline:
 
 ```sh
-npx github:vtxe02023274/aseview hero.aseprite -o build/sprites --columns 8 --gif
+npx aseview hero.aseprite -o build/sprites --columns 8 --gif
 # hero.png, hero.json (Aseprite Array format) and one GIF per tag
 ```
 

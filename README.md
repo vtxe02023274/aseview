@@ -33,7 +33,7 @@ PixiJS 等讀 TexturePacker／Aseprite JSON 的引擎也能讀。
 不用裝 Aseprite，用 Node.js 20 以上就能批次匯出，適合放進建置流程：
 
 ```sh
-npx github:vtxe02023274/aseview hero.aseprite -o build/sprites --columns 8 --gif
+npx aseview hero.aseprite -o build/sprites --columns 8 --gif
 # hero.png、hero.json（Aseprite Array 格式）、每個標籤一個 GIF
 ```
 
