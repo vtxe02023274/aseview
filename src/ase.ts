@@ -45,7 +45,10 @@ export interface Cel {
 
 export interface Frame {
   duration: number;
-  /** Cels by layer index. Linked cels are resolved to the cel they point to. */
+  /**
+   * Cels by layer index. Linked cels share the image of the cel they point to
+   * but keep their own position, opacity and z-index, as Aseprite does.
+   */
   cels: Map<number, Cel>;
 }
 
@@ -186,7 +189,7 @@ export async function readAse(bytes: Uint8Array, inflate: Inflate): Promise<Spri
     slices: [],
   };
   const hasUuid = (flags & 4) !== 0;
-  const links: { frame: number; layer: number; source: number }[] = [];
+  const links: { frame: number; cel: LinkedCel }[] = [];
   let hasNewPalette = false;
 
   for (let f = 0; f < frameCount; f++) {
@@ -219,7 +222,7 @@ export async function readAse(bytes: Uint8Array, inflate: Inflate): Promise<Spri
           break;
         case 0x2005: {
           const cel = await readCel(r, end, sprite.depth, inflate);
-          if ('link' in cel) links.push({ frame: f, layer: cel.layer, source: cel.link });
+          if ('link' in cel) links.push({ frame: f, cel });
           else frame.cels.set(cel.layer, cel);
           break;
         }
@@ -246,9 +249,10 @@ export async function readAse(bytes: Uint8Array, inflate: Inflate): Promise<Spri
     r.pos = frameStart + frameSize;
   }
 
-  for (const { frame, layer, source } of links) {
-    const cel = sprite.frames[source]?.cels.get(layer);
-    if (cel) sprite.frames[frame]!.cels.set(layer, cel);
+  for (const { frame, cel } of links) {
+    const { link, ...own } = cel;
+    const source = sprite.frames[link]?.cels.get(cel.layer);
+    if (source) sprite.frames[frame]!.cels.set(cel.layer, { ...source, ...own });
   }
   return sprite;
 }
@@ -327,12 +331,15 @@ function readLayer(r: Reader, layers: Layer[], hasUuid: boolean): Layer {
   };
 }
 
+/** A linked cel: the header fields of its own chunk plus the frame it links to. */
+type LinkedCel = Pick<Cel, 'layer' | 'x' | 'y' | 'opacity' | 'zIndex'> & { link: number };
+
 async function readCel(
   r: Reader,
   end: number,
   depth: number,
   inflate: Inflate,
-): Promise<Cel | { layer: number; link: number }> {
+): Promise<Cel | LinkedCel> {
   const layer = r.u16();
   const x = r.i16();
   const y = r.i16();
@@ -350,7 +357,7 @@ async function readCel(
       return { layer, x, y, opacity, zIndex, width, height, pixels };
     }
     case 1:
-      return { layer, link: r.u16() };
+      return { layer, x, y, opacity, zIndex, link: r.u16() };
     case 2: {
       const width = r.u16();
       const height = r.u16();
