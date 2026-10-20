@@ -28,6 +28,36 @@ this.anims.createFromAseprite('slime'); // creates the idle and jump animations
 
 PixiJS and other engines that read TexturePacker or Aseprite JSON work too.
 
+## Phaser loader
+
+`aseview/phaser` loads `.aseprite` files straight into Phaser 3 (3.80 or later) or Phaser 4, with no export step. Phaser is an optional peer dependency; the command line does not need it.
+
+```sh
+npm install aseview phaser
+```
+
+```js
+import * as Phaser from 'phaser';
+import { AsepritePlugin } from 'aseview/phaser';
+
+new Phaser.Game({
+  pixelArt: true,
+  plugins: { global: [{ key: 'AsepritePlugin', plugin: AsepritePlugin, start: true }] },
+  scene: {
+    preload() {
+      this.load.aseprite('hero', 'hero.aseprite');
+    },
+    create() {
+      this.add.sprite(100, 100, 'hero').play('hero.walk'); // the "walk" tag
+    },
+  },
+});
+```
+
+- The texture `hero` has one frame per Aseprite frame, numbered from 0 and the size of the sprite, so `this.add.image(x, y, 'hero', 3)` works too. Frames are drawn from the visible layers, the same as an Aseprite export.
+- Each tag becomes an animation named `<texture>.<tag>` with the frame durations from the file, in forward, reverse, ping-pong or ping-pong reverse order, and the tag's repeat count (0 loops forever). A sprite without tags gets one animation named after the texture that loops every frame.
+- `this.load.aseprite('hero', 'hero.png', 'hero.json')` still goes to Phaser's own loader, so exported sheets keep working.
+
 ## Command line
 
 Batch export without Aseprite installed, with Node.js 20 or later, which fits a build pipeline:
@@ -65,7 +95,7 @@ npm test
 npm run lint
 ```
 
-`src/ase.ts` reads files, `src/composite.ts` flattens frames and `src/sheet.ts` lays out sheets. None of them need a browser, so they work in Node too (pass `zlib.inflateSync` as the inflate function).
+`src/ase.ts` reads files, `src/composite.ts` flattens frames and `src/sheet.ts` lays out sheets. None of them need a browser, so they work in Node too (pass `zlib.inflateSync` as the inflate function); `import { readAse, compositeFrame } from 'aseview'` gives the same functions from the package. `src/phaser.ts` is the Phaser loader and `src/anims.ts` turns tags into its animations.
 
 ## License
 

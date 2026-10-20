@@ -1,6 +1,7 @@
 import { AseError, LayerType, readAse, type Sprite } from './ase.js';
 import { BLEND_MODES, compositeFrame, scalePixels, scaleSprite } from './composite.js';
 import { encodeGif, GifError } from './gif.js';
+import { inflate } from './inflate.js';
 import { layoutSheet, sheetJson, tagSequence } from './sheet.js';
 import { stackSlices, type StackSource } from './stack.js';
 
@@ -20,14 +21,6 @@ const message = $<HTMLElement>('#message');
 const stackSelect = $<HTMLSelectElement>('#stack');
 const spinInput = $<HTMLInputElement>('#spin');
 const spacingInput = $<HTMLInputElement>('#spacing');
-
-async function inflate(data: Uint8Array): Promise<Uint8Array> {
-  // "deflate" in DecompressionStream is the zlib format Aseprite uses.
-  const stream = new Blob([data as BlobPart])
-    .stream()
-    .pipeThrough(new DecompressionStream('deflate'));
-  return new Uint8Array(await new Response(stream).arrayBuffer());
-}
 
 let sprite: Sprite | undefined;
 let fileName = 'sprite';
