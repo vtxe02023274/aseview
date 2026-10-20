@@ -38,7 +38,32 @@ describe('readAse', () => {
 
   it('resolves linked cels to the cel they point to', async () => {
     const s = await load('./fixtures/sample.aseprite');
-    expect(s.frames[1]!.cels.get(0)).toBe(s.frames[0]!.cels.get(0));
+    expect(s.frames[1]!.cels.get(0)).toEqual(s.frames[0]!.cels.get(0));
+    expect(s.frames[1]!.cels.get(0)!.pixels).toBe(s.frames[0]!.cels.get(0)!.pixels);
+  });
+
+  it('keeps the position, opacity and z-index of the linked cel itself', async () => {
+    const s = await readAse(
+      build.aseFile(2, 1, [
+        build.frame([
+          build.layer('bottom'),
+          build.layer('top'),
+          build.cel(0, [255, 0, 0, 255]),
+          build.cel(1, [0, 0, 255, 255]),
+        ]),
+        build.frame([
+          build.link(0, 0, { x: 1, opacity: 128, z: 1 }),
+          build.cel(1, [0, 0, 255, 255], { w: 2 }),
+        ]),
+      ]),
+      inflate,
+    );
+    expect(s.frames[1]!.cels.get(0)).toMatchObject({ x: 1, y: 0, opacity: 128, zIndex: 1 });
+    expect(s.frames[0]!.cels.get(0)).toMatchObject({ x: 0, opacity: 255, zIndex: 0 });
+    // With z-index 1 the half transparent red cel now draws above the blue one.
+    const img = compositeFrame(s, 1);
+    expect(pixel(img, s, 0, 0)).toEqual([0, 0, 255, 255]);
+    expect(pixel(img, s, 1, 0)).toEqual([128, 0, 127, 255]);
   });
 
   it('rejects files that are not Aseprite sprites', async () => {
