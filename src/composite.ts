@@ -5,6 +5,8 @@ export interface CompositeOptions {
   hidden?: ReadonlySet<number>;
   /** Draw layers marked as reference layers. Aseprite hides them on export. */
   includeReference?: boolean;
+  /** Draw only this layer, still with the opacity of the groups it is in. */
+  only?: number;
 }
 
 /** Aseprite blend mode ids that are supported; the rest draw as normal. */
@@ -35,7 +37,11 @@ export function compositeFrame(
   // Order from the spec (NOTE.5): layer index plus the cel z-index, and on a
   // tie the cel with the lower z-index goes first.
   const order = [...frame.cels.values()]
-    .filter((cel) => layerShown(sprite, cel.layer, options))
+    .filter(
+      (cel) =>
+        (options.only === undefined || cel.layer === options.only) &&
+        layerShown(sprite, cel.layer, options),
+    )
     .sort((a, b) => a.layer + a.zIndex - (b.layer + b.zIndex) || a.zIndex - b.zIndex);
 
   for (const cel of order) {
@@ -49,7 +55,8 @@ export function compositeFrame(
   return out;
 }
 
-function layerShown(sprite: Sprite, index: number, options: CompositeOptions): boolean {
+/** Whether a layer is drawn: visible, not hidden, and in no hidden group. */
+export function layerShown(sprite: Sprite, index: number, options: CompositeOptions): boolean {
   for (let i = index; i >= 0; i = sprite.layers[i]!.parent) {
     const layer = sprite.layers[i];
     if (!layer || !layer.visible || options.hidden?.has(i)) return false;

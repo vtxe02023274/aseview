@@ -59,6 +59,20 @@ describe('cli', () => {
     expect(await run([demo, '--scale', '1.5'], () => {})).toBe(2);
   });
 
+  it('writes one sheet per layer with --split-layers', async () => {
+    const out = mkdtempSync(join(tmpdir(), 'aseview-'));
+    const lines: string[] = [];
+    const demo = fileURLToPath(new URL('../public/demo.aseprite', import.meta.url));
+    expect(
+      await run([demo, '-o', out, '--split-layers', '--hide', 'eyes'], (s) => lines.push(s)),
+    ).toBe(0);
+    expect(lines[0]).toMatch(
+      /-> demo\.png, demo\.json, demo-shadow\.png, demo-shadow\.json, demo-body\.png, demo-body\.json$/,
+    );
+    const body = JSON.parse(readFileSync(join(out, 'demo-body.json'), 'utf8'));
+    expect(body.meta.image).toBe('demo-body.png');
+  });
+
   it('reports files it cannot read and bad options', async () => {
     const lines: string[] = [];
     expect(await run(['does-not-exist.aseprite'], (s) => lines.push(s))).toBe(1);

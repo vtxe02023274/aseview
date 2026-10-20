@@ -42,6 +42,7 @@ npx github:vtxe02023274/aseview hero.aseprite -o build/sprites --columns 8 --gif
 | `-o, --out <dir>` | 輸出資料夾，預設跟原檔同一層                             |
 | `--columns <n>`   | sheet 每排幾格，預設全部排一排                           |
 | `--scale <n>`     | 每個像素放大 n 倍（像素圖用，最近鄰），JSON 座標一起放大 |
+| `--split-layers`  | 另外每個圖層各輸出一張 sheet＋JSON（疊回去等於完整圖）   |
 | `--gif`           | 每個標籤各輸出一個 GIF                                   |
 | `--hide <layer>`  | 依名稱略過某個圖層，可以重複使用                         |
 

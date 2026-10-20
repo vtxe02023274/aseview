@@ -2,8 +2,8 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { deflateSync, inflateSync } from 'node:zlib';
-import { AseError, readAse } from './ase.js';
-import { compositeFrame, scalePixels, scaleSprite } from './composite.js';
+import { AseError, LayerType, readAse } from './ase.js';
+import { compositeFrame, layerShown, scalePixels, scaleSprite } from './composite.js';
 import { encodeGif, GifError } from './gif.js';
 import { encodePng } from './png.js';
 import { layoutSheet, sheetJson, tagSequence } from './sheet.js';
@@ -17,6 +17,7 @@ options:
   -o, --out <dir>      output folder (default: next to each file)
   --columns <n>        frames per row in the sheet (default: all in one row)
   --scale <n>          enlarge every pixel n times, for pixel art (default: 1)
+  --split-layers       also write a sheet for each layer on its own
   --gif                also write one GIF per tag, or one for all frames
   --hide <layer>       leave a layer out by name, can be repeated
   -h, --help           show this help`;
@@ -31,6 +32,7 @@ export async function run(argv: string[], log: (s: string) => void = console.log
         out: { type: 'string', short: 'o' },
         columns: { type: 'string' },
         scale: { type: 'string' },
+        'split-layers': { type: 'boolean' },
         gif: { type: 'boolean' },
         hide: { type: 'string', multiple: true },
         help: { type: 'boolean', short: 'h' },
@@ -76,27 +78,47 @@ export async function run(argv: string[], log: (s: string) => void = console.log
         scalePixels(compositeFrame(sprite, i, { hidden }), sprite.width, sprite.height, scale);
 
       const layout = layoutSheet(scaled, columns);
-      const sheet = new Uint8Array(layout.width * layout.height * 4);
-      sprite.frames.forEach((_, i) => {
-        const px = frame(i);
-        const { x, y } = layout.positions[i]!;
-        for (let row = 0; row < scaled.height; row++) {
-          sheet.set(
-            px.subarray(row * scaled.width * 4, (row + 1) * scaled.width * 4),
-            ((y + row) * layout.width + x) * 4,
+      const writeSheet = (base: string, pixels: (i: number) => Uint8ClampedArray) => {
+        const sheet = new Uint8Array(layout.width * layout.height * 4);
+        sprite.frames.forEach((_, i) => {
+          const px = pixels(i);
+          const { x, y } = layout.positions[i]!;
+          for (let row = 0; row < scaled.height; row++) {
+            sheet.set(
+              px.subarray(row * scaled.width * 4, (row + 1) * scaled.width * 4),
+              ((y + row) * layout.width + x) * 4,
+            );
+          }
+        });
+        const png = `${base}.png`;
+        writeFileSync(
+          join(dir, png),
+          encodePng(layout.width, layout.height, sheet, (d) => deflateSync(d)),
+        );
+        writeFileSync(
+          join(dir, `${base}.json`),
+          JSON.stringify(sheetJson(scaled, layout, png, scale), null, 1) + '\n',
+        );
+        return [png, `${base}.json`];
+      };
+      const written = writeSheet(name, frame);
+
+      if (values['split-layers']) {
+        sprite.layers.forEach((layer, index) => {
+          if (layer.type === LayerType.Group || !layerShown(sprite, index, { hidden })) return;
+          const safe = layer.name.replace(/[^\w.-]+/g, '_');
+          written.push(
+            ...writeSheet(`${name}-${safe}`, (i) =>
+              scalePixels(
+                compositeFrame(sprite, i, { hidden, only: index }),
+                sprite.width,
+                sprite.height,
+                scale,
+              ),
+            ),
           );
-        }
-      });
-      const png = `${name}.png`;
-      writeFileSync(
-        join(dir, png),
-        encodePng(layout.width, layout.height, sheet, (d) => deflateSync(d)),
-      );
-      writeFileSync(
-        join(dir, `${name}.json`),
-        JSON.stringify(sheetJson(scaled, layout, png, scale), null, 1) + '\n',
-      );
-      const written = [png, `${name}.json`];
+        });
+      }
 
       if (values.gif) {
         const groups = sprite.tags.length
