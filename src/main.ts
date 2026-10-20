@@ -1,5 +1,5 @@
 import { AseError, LayerType, readAse, type Sprite } from './ase.js';
-import { BLEND_MODES, compositeFrame } from './composite.js';
+import { BLEND_MODES, compositeFrame, scalePixels, scaleSprite } from './composite.js';
 import { encodeGif, GifError } from './gif.js';
 import { layoutSheet, sheetJson, tagSequence } from './sheet.js';
 import { stackSlices, type StackSource } from './stack.js';
@@ -14,6 +14,8 @@ const tagSelect = $<HTMLSelectElement>('#tag');
 const playButton = $<HTMLButtonElement>('#play');
 const zoomInput = $<HTMLInputElement>('#zoom');
 const columnsInput = $<HTMLInputElement>('#columns');
+const scaleSelect = $<HTMLSelectElement>('#export-scale');
+const exportScale = () => Number(scaleSelect.value) || 1;
 const message = $<HTMLElement>('#message');
 const stackSelect = $<HTMLSelectElement>('#stack');
 const spinInput = $<HTMLInputElement>('#spin');
@@ -299,24 +301,30 @@ function download(name: string, blob: Blob): void {
 
 async function sheetCanvas() {
   const s = sprite!;
-  const layout = layoutSheet(s, Number(columnsInput.value) || s.frames.length);
+  const k = exportScale();
+  const scaled = scaleSprite(s, k);
+  const layout = layoutSheet(scaled, Number(columnsInput.value) || s.frames.length);
   const canvas = document.createElement('canvas');
   canvas.width = layout.width;
   canvas.height = layout.height;
   const c = canvas.getContext('2d')!;
+  c.imageSmoothingEnabled = false;
   for (let i = 0; i < s.frames.length; i++) {
     const p = layout.positions[i]!;
-    c.drawImage(await frameImage(i), p.x, p.y);
+    c.drawImage(await frameImage(i), p.x, p.y, scaled.width, scaled.height);
   }
-  return { canvas, layout };
+  return { canvas, layout, scaled, k };
 }
 
 $('#export-frame').addEventListener('click', async () => {
   if (!sprite) return;
+  const k = exportScale();
   const canvas = document.createElement('canvas');
-  canvas.width = sprite.width;
-  canvas.height = sprite.height;
-  canvas.getContext('2d')!.drawImage(await frameImage(frame), 0, 0);
+  canvas.width = sprite.width * k;
+  canvas.height = sprite.height * k;
+  const c = canvas.getContext('2d')!;
+  c.imageSmoothingEnabled = false;
+  c.drawImage(await frameImage(frame), 0, 0, canvas.width, canvas.height);
   canvas.toBlob((b) => b && download(`${fileName}-${frame}.png`, b), 'image/png');
 });
 
@@ -326,11 +334,12 @@ $('#export-gif').addEventListener('click', () => {
   // Plays the selected tag, or every frame.
   const order = sequence.length ? sequence : s.frames.map((_, i) => i);
   try {
+    const k = exportScale();
     const gif = encodeGif(
-      s.width,
-      s.height,
+      s.width * k,
+      s.height * k,
       order.map((i) => ({
-        pixels: compositeFrame(s, i, { hidden }),
+        pixels: scalePixels(compositeFrame(s, i, { hidden }), s.width, s.height, k),
         delay: s.frames[i]!.duration,
       })),
     );
@@ -346,9 +355,9 @@ $('#export-gif').addEventListener('click', () => {
 
 $('#export-sheet').addEventListener('click', async () => {
   if (!sprite) return;
-  const { canvas, layout } = await sheetCanvas();
+  const { canvas, layout, scaled, k } = await sheetCanvas();
   canvas.toBlob((b) => b && download(`${fileName}.png`, b), 'image/png');
-  const json = sheetJson(sprite, layout, `${fileName}.png`);
+  const json = sheetJson(scaled, layout, `${fileName}.png`, k);
   download(
     `${fileName}.json`,
     new Blob([JSON.stringify(json, null, 1)], { type: 'application/json' }),
