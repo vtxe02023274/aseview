@@ -14,6 +14,7 @@ Use it online: https://vtxe02023274.github.io/aseview/
 - Layer toggles, groups, layer and cel opacity, cel z-index ordering
 - Tilemap layers, including X, Y and diagonal flips
 - Playback with per-frame durations, by tag, in forward, reverse and ping-pong
+- 2.5D sprite stacking preview: layers or frames become slices from bottom to top, drag to turn and set the slice height; "Stack demo" shows an example
 - Export the current frame as PNG, the selected tag as an animated GIF, or the whole sprite sheet as PNG plus JSON
 
 GIFs keep the exact colors of the sprite (up to 255) with no dithering; sprites with more colors get a message to use the sprite sheet instead. The encoder is written from scratch and checked pixel by pixel against Chrome's own GIF decoder.
@@ -33,7 +34,7 @@ Blend modes normal, multiply, screen, darken, lighten, difference, addition and 
 
 ## Demo file
 
-`public/demo.aseprite` is a slime drawn in code by `tools/make-demo.mjs` (3 layers, 6 frames, 2 tags), with no third party art.
+`public/demo.aseprite` (a slime, 3 layers, 6 frames, 2 tags) and `public/stack-demo.aseprite` (a tree, 14 slices) are both drawn in code by `tools/make-demo.mjs`, with no third party art.
 
 ## Development
 

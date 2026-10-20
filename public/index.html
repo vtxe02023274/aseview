@@ -146,6 +146,7 @@
           >Open .aseprite<input id="file" type="file" accept=".ase,.aseprite"
         /></label>
         <button id="demo">Demo</button>
+        <button id="stack-demo">Stack demo</button>
       </div>
       <div id="message"></div>
       <section>
@@ -161,6 +162,21 @@
         <label class="row" style="margin-top: 6px">
           zoom <input id="zoom" type="range" min="1" max="16" value="8" />
         </label>
+      </section>
+      <section>
+        <h2>2.5D stack</h2>
+        <div class="row">
+          <select id="stack">
+            <option value="off">Off</option>
+            <option value="layers">Layers as slices</option>
+            <option value="frames">Frames as slices</option>
+          </select>
+          <label><input id="spin" type="checkbox" checked /> spin</label>
+        </div>
+        <label class="row" style="margin-top: 6px">
+          slice height <input id="spacing" type="range" min="1" max="6" value="2" />
+        </label>
+        <p class="note">Drag the sprite to turn it. Slices go bottom to top.</p>
       </section>
       <section>
         <h2>Layers</h2>

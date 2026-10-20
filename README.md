@@ -14,6 +14,7 @@
 - 圖層開關、群組、圖層與 cel 透明度、cel 的 z-index 排序
 - 圖塊地圖圖層（tilemap），含水平、垂直、對角翻轉
 - 照每格的時間播放，可以選標籤，支援 forward／reverse／ping-pong
+- 2.5D 切片堆疊（sprite stacking）預覽：圖層或影格當成由下往上的切片，可以拖曳旋轉、調切片高度；按「Stack demo」看範例
 - 匯出目前影格 PNG、選定標籤的 GIF 動畫，或整張 sprite sheet PNG＋JSON
 
 GIF 用 sprite 裡的原色（最多 255 色），不抖色；超過 255 色會提示改用 sprite sheet。編碼器是自己寫的，用 Chrome 內建的 GIF 解碼器逐像素比對過。
@@ -33,7 +34,7 @@ PixiJS 等讀 TexturePacker／Aseprite JSON 的引擎也能讀。
 
 ## 示範檔
 
-`public/demo.aseprite` 是 `tools/make-demo.mjs` 用程式畫的史萊姆（3 圖層、6 影格、2 個標籤），沒有用到第三方素材。
+`public/demo.aseprite`（史萊姆，3 圖層、6 影格、2 個標籤）和 `public/stack-demo.aseprite`（樹，14 層切片）都是 `tools/make-demo.mjs` 用程式畫的，沒有用到第三方素材。
 
 ## 開發
 

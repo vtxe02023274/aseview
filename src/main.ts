@@ -2,6 +2,7 @@ import { AseError, LayerType, readAse, type Sprite } from './ase.js';
 import { BLEND_MODES, compositeFrame } from './composite.js';
 import { encodeGif, GifError } from './gif.js';
 import { layoutSheet, sheetJson, tagSequence } from './sheet.js';
+import { stackSlices, type StackSource } from './stack.js';
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 const view = $<HTMLCanvasElement>('#view');
@@ -14,6 +15,9 @@ const playButton = $<HTMLButtonElement>('#play');
 const zoomInput = $<HTMLInputElement>('#zoom');
 const columnsInput = $<HTMLInputElement>('#columns');
 const message = $<HTMLElement>('#message');
+const stackSelect = $<HTMLSelectElement>('#stack');
+const spinInput = $<HTMLInputElement>('#spin');
+const spacingInput = $<HTMLInputElement>('#spacing');
 
 async function inflate(data: Uint8Array): Promise<Uint8Array> {
   // "deflate" in DecompressionStream is the zlib format Aseprite uses.
@@ -32,6 +36,8 @@ let step = 0;
 let nextAt = 0;
 const hidden = new Set<number>();
 let cache = new Map<number, ImageBitmap>();
+let stack: { key: string; bitmaps: ImageBitmap[] } | undefined;
+let angle = 0;
 
 async function open(bytes: Uint8Array, name: string): Promise<void> {
   try {
@@ -44,6 +50,7 @@ async function open(bytes: Uint8Array, name: string): Promise<void> {
   fileName = name.replace(/\.(ase|aseprite)$/i, '');
   hidden.clear();
   cache = new Map();
+  stack = undefined;
   frame = 0;
   showInfo();
   showLayers();
@@ -169,8 +176,60 @@ function setSequence(): void {
   nextAt = performance.now() + (s.frames[frame]?.duration ?? 100);
 }
 
+async function stackBitmaps(): Promise<ImageBitmap[]> {
+  const s = sprite!;
+  const source = stackSelect.value as StackSource;
+  const key = `${source}:${source === 'layers' ? frame : ''}:${[...hidden].join(',')}`;
+  if (stack?.key !== key) {
+    const slices = stackSlices(s, source, frame, hidden);
+    const bitmaps = await Promise.all(
+      slices.map((px) => createImageBitmap(new ImageData(px as ImageDataArray, s.width, s.height))),
+    );
+    stack = { key, bitmaps };
+  }
+  return stack.bitmaps;
+}
+
+/** Draws each slice rotated, stacked upward, repeated to fill its height. */
+async function drawStack(): Promise<void> {
+  const s = sprite!;
+  const zoom = Number(zoomInput.value);
+  const spacing = Number(spacingInput.value);
+  const bitmaps = await stackBitmaps();
+  const diagonal = Math.ceil(Math.hypot(s.width, s.height)) * zoom;
+  const lift = bitmaps.length * spacing * zoom;
+  view.width = diagonal;
+  view.height = diagonal + lift;
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, view.width, view.height);
+  const cx = diagonal / 2;
+  const base = lift + diagonal / 2;
+  bitmaps.forEach((bitmap, i) => {
+    for (let k = 0; k < spacing; k++) {
+      ctx.save();
+      ctx.translate(cx, base - (i * spacing + k) * zoom);
+      ctx.rotate(angle);
+      ctx.drawImage(
+        bitmap,
+        (-s.width * zoom) / 2,
+        (-s.height * zoom) / 2,
+        s.width * zoom,
+        s.height * zoom,
+      );
+      ctx.restore();
+    }
+  });
+}
+
 async function draw(): Promise<void> {
   if (!sprite) return;
+  if (stackSelect.value !== 'off') {
+    await drawStack();
+    framesEl
+      .querySelectorAll('.frame')
+      .forEach((el, i) => el.classList.toggle('current', i === frame));
+    return;
+  }
   const zoom = Number(zoomInput.value);
   view.width = sprite.width * zoom;
   view.height = sprite.height * zoom;
@@ -182,7 +241,14 @@ async function draw(): Promise<void> {
     .forEach((el, i) => el.classList.toggle('current', i === frame));
 }
 
+let lastTick = performance.now();
 function tick(now: number): void {
+  const dt = now - lastTick;
+  lastTick = now;
+  if (sprite && stackSelect.value !== 'off' && spinInput.checked && !dragging) {
+    angle += dt * 0.0012;
+    draw();
+  }
   if (playing && sprite && sequence.length && now >= nextAt) {
     step = (step + 1) % sequence.length;
     frame = sequence[step]!;
@@ -204,6 +270,24 @@ tagSelect.addEventListener('change', () => {
   draw();
 });
 zoomInput.addEventListener('input', () => draw());
+stackSelect.addEventListener('change', () => {
+  stack = undefined;
+  draw();
+});
+spacingInput.addEventListener('input', () => draw());
+
+let dragging: { x: number; angle: number } | undefined;
+view.addEventListener('pointerdown', (e) => {
+  if (stackSelect.value === 'off') return;
+  view.setPointerCapture(e.pointerId);
+  dragging = { x: e.clientX, angle };
+});
+view.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  angle = dragging.angle + (e.clientX - dragging.x) * 0.01;
+  draw();
+});
+view.addEventListener('pointerup', () => (dragging = undefined));
 
 function download(name: string, blob: Blob): void {
   const a = document.createElement('a');
@@ -286,6 +370,12 @@ addEventListener('drop', (e) => {
   if (file) openFile(file);
 });
 $('#demo').addEventListener('click', loadDemo);
+$('#stack-demo').addEventListener('click', async () => {
+  const res = await fetch('stack-demo.aseprite');
+  stackSelect.value = 'layers';
+  zoomInput.value = '12';
+  await open(new Uint8Array(await res.arrayBuffer()), 'stack-demo.aseprite');
+});
 
 async function loadDemo(): Promise<void> {
   const res = await fetch('demo.aseprite');

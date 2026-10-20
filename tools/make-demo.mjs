@@ -160,3 +160,64 @@ header.writeUInt16LE(16, 42);
 
 writeFileSync(new URL('../public/demo.aseprite', import.meta.url), Buffer.concat([header, body]));
 console.log(`public/demo.aseprite: ${128 + body.length} bytes, ${frames.length} frames`);
+
+// A tree for sprite stacking: one layer per horizontal slice, bottom first.
+function writeStack(file, size, slices) {
+  const chunks = [];
+  slices.forEach((_, i) => chunks.push(layer(`slice ${i}`, 255)));
+  slices.forEach((draw, i) => {
+    const px = Buffer.alloc(size * size * 4);
+    draw((x, y, rgba) => {
+      if (x >= 0 && y >= 0 && x < size && y < size) px.set([...rgba, 255], (y * size + x) * 4);
+    });
+    const b = Buffer.alloc(20);
+    b.writeUInt16LE(i, 0);
+    b.writeUInt8(255, 6);
+    b.writeUInt16LE(2, 7);
+    b.writeUInt16LE(size, 16);
+    b.writeUInt16LE(size, 18);
+    chunks.push(chunk(0x2005, Buffer.concat([b, deflateSync(px)])));
+  });
+  const data = Buffer.concat(chunks);
+  const head = Buffer.alloc(16);
+  head.writeUInt32LE(16 + data.length, 0);
+  head.writeUInt16LE(0xf1fa, 4);
+  head.writeUInt16LE(chunks.length, 6);
+  head.writeUInt16LE(100, 8);
+  head.writeUInt32LE(chunks.length, 12);
+  const h = Buffer.alloc(128);
+  h.writeUInt32LE(128 + 16 + data.length, 0);
+  h.writeUInt16LE(0xa5e0, 4);
+  h.writeUInt16LE(1, 6);
+  h.writeUInt16LE(size, 8);
+  h.writeUInt16LE(size, 10);
+  h.writeUInt16LE(32, 12);
+  h.writeUInt32LE(1, 14);
+  h.writeUInt8(1, 34);
+  h.writeUInt8(1, 35);
+  writeFileSync(new URL(file, import.meta.url), Buffer.concat([h, head, data]));
+  console.log(`${file.replace('../', '')}: ${slices.length} slices`);
+}
+
+const S = 16;
+const c = S / 2 - 0.5;
+const disc = (r, rgb, edge) => (set) => {
+  for (let y = 0; y < S; y++)
+    for (let x = 0; x < S; x++) {
+      const d = Math.hypot(x - c, y - c);
+      if (d <= r) set(x, y, d > r - 1 ? edge : rgb);
+    }
+};
+const trunk = (set) => {
+  for (let y = 6; y < 10; y++)
+    for (let x = 6; x < 10; x++) set(x, y, x === 6 || y === 9 ? [92, 60, 34] : [122, 82, 48]);
+};
+const leaves = [3.5, 5.5, 6.5, 7, 6.5, 6, 5, 3.5, 2];
+writeStack('../public/stack-demo.aseprite', S, [
+  disc(7.5, [70, 120, 52], [58, 100, 44]),
+  trunk,
+  trunk,
+  trunk,
+  trunk,
+  ...leaves.map((r, i) => disc(r, i % 2 ? [86, 160, 70] : [74, 146, 62], [46, 96, 40])),
+]);
