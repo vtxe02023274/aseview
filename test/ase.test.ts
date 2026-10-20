@@ -1,0 +1,103 @@
+import { readFileSync } from 'node:fs';
+import { inflateSync } from 'node:zlib';
+import { describe, expect, it } from 'vitest';
+import { AseError, readAse, type Sprite } from '../src/ase.js';
+import { compositeFrame } from '../src/composite.js';
+import { layoutSheet, sheetJson, tagSequence } from '../src/sheet.js';
+
+const inflate = async (data: Uint8Array) => new Uint8Array(inflateSync(data));
+const load = (name: string) =>
+  readAse(new Uint8Array(readFileSync(new URL(name, import.meta.url))), inflate);
+
+const pixel = (img: Uint8ClampedArray, sprite: Sprite, x: number, y: number) =>
+  Array.from(img.subarray((y * sprite.width + x) * 4, (y * sprite.width + x) * 4 + 4));
+
+describe('readAse', () => {
+  it('reads every part of the sample file', async () => {
+    const s = await load('./fixtures/sample.aseprite');
+    expect(s).toMatchObject({ width: 8, height: 8, depth: 32 });
+    expect(s.layers.map((l) => [l.name, l.type, l.parent])).toEqual([
+      ['Background', 0, -1],
+      ['Group', 1, -1],
+      ['Child', 0, 1],
+      ['Tiles', 2, -1],
+    ]);
+    expect(s.tags.map((t) => [t.name, t.from, t.to, t.direction, t.repeat])).toEqual([
+      ['walk', 0, 1, 'pingpong', 0],
+      ['idle', 1, 1, 'forward', 3],
+    ]);
+    expect(Array.from(s.palette.subarray(8, 16))).toEqual([0, 255, 0, 128, 0, 0, 255, 255]);
+    expect(s.slices).toEqual([
+      { name: 'button', keys: [{ frame: 0, x: 0, y: 0, width: 8, height: 8 }] },
+    ]);
+    expect(s.tilesets[0]).toMatchObject({ name: 'Ground', tileCount: 2, tileWidth: 4 });
+    expect(s.frames.map((f) => f.duration)).toEqual([100, 150]);
+  });
+
+  it('resolves linked cels to the cel they point to', async () => {
+    const s = await load('./fixtures/sample.aseprite');
+    expect(s.frames[1]!.cels.get(0)).toBe(s.frames[0]!.cels.get(0));
+  });
+
+  it('rejects files that are not Aseprite sprites', async () => {
+    await expect(readAse(new Uint8Array(200), inflate)).rejects.toThrow(AseError);
+    const bytes = new Uint8Array(
+      readFileSync(new URL('./fixtures/sample.aseprite', import.meta.url)),
+    );
+    await expect(readAse(bytes.subarray(0, 300), inflate)).rejects.toThrow(/unexpected end/);
+  });
+});
+
+describe('compositeFrame', () => {
+  it('stacks layers bottom to top with layer opacity', async () => {
+    const s = await load('../public/demo.aseprite');
+    const img = compositeFrame(s, 0);
+    // Shadow is black at 80/255 opacity, nothing above it at the edge.
+    expect(pixel(img, s, 16 - 9, 28)).toEqual([0, 0, 0, 80]);
+    // Body is opaque over the shadow.
+    expect(pixel(img, s, 16, 22)).toEqual([96, 196, 112, 255]);
+    // Empty corner.
+    expect(pixel(img, s, 0, 0)).toEqual([0, 0, 0, 0]);
+  });
+
+  it('hides layers on request', async () => {
+    const s = await load('../public/demo.aseprite');
+    const img = compositeFrame(s, 0, { hidden: new Set([1]) });
+    expect(pixel(img, s, 16, 22)).toEqual([0, 0, 0, 0]);
+  });
+
+  it('draws tilemap cels from the tileset with flips', async () => {
+    const s = await load('./fixtures/sample.aseprite');
+    const img = compositeFrame(s, 0, { hidden: new Set([0, 2]) });
+    // Tile 0 of an Aseprite tileset is the empty tile, so the map [1, 2, 1 x-flipped, 0]
+    // draws the black tile, nothing (2 is out of range), black again and nothing.
+    expect(pixel(img, s, 0, 0)).toEqual([0, 0, 0, 255]);
+    expect(pixel(img, s, 4, 0)).toEqual([0, 0, 0, 0]);
+    expect(pixel(img, s, 3, 7)).toEqual([0, 0, 0, 255]);
+    expect(pixel(img, s, 4, 4)).toEqual([0, 0, 0, 0]);
+  });
+});
+
+describe('sheet', () => {
+  it('lays out frames and writes Aseprite style JSON', async () => {
+    const s = await load('../public/demo.aseprite');
+    const layout = layoutSheet(s, 4);
+    expect(layout).toMatchObject({ columns: 4, rows: 2, width: 128, height: 64 });
+    const json = sheetJson(s, layout, 'demo.png');
+    expect(json.frames.map((f) => f.filename)).toEqual(['0', '1', '2', '3', '4', '5']);
+    expect(json.frames[5]!.frame).toEqual({ x: 32, y: 32, w: 32, h: 32 });
+    expect(json.frames.map((f) => f.duration)).toEqual([300, 300, 100, 100, 120, 100]);
+    expect(json.meta.frameTags).toEqual([
+      { name: 'idle', from: 0, to: 1, direction: 'pingpong' },
+      { name: 'jump', from: 2, to: 5, direction: 'forward' },
+    ]);
+  });
+
+  it('plays tags in every direction', () => {
+    expect(tagSequence(2, 5, 'forward')).toEqual([2, 3, 4, 5]);
+    expect(tagSequence(2, 5, 'reverse')).toEqual([5, 4, 3, 2]);
+    expect(tagSequence(2, 5, 'pingpong')).toEqual([2, 3, 4, 5, 4, 3]);
+    expect(tagSequence(2, 5, 'pingpong-reverse')).toEqual([5, 4, 3, 2, 3, 4]);
+    expect(tagSequence(1, 1, 'pingpong')).toEqual([1]);
+  });
+});
