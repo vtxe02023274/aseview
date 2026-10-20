@@ -14,7 +14,9 @@ Use it online: https://vtxe02023274.github.io/aseview/
 - Layer toggles, groups, layer and cel opacity, cel z-index ordering
 - Tilemap layers, including X, Y and diagonal flips
 - Playback with per-frame durations, by tag, in forward, reverse and ping-pong
-- Export the current frame as PNG, or the whole sprite sheet as PNG plus JSON
+- Export the current frame as PNG, the selected tag as an animated GIF, or the whole sprite sheet as PNG plus JSON
+
+GIFs keep the exact colors of the sprite (up to 255) with no dithering; sprites with more colors get a message to use the sprite sheet instead. The encoder is written from scratch and checked pixel by pixel against Chrome's own GIF decoder.
 
 The JSON uses Aseprite's "Array" format with frame numbers as names, so Phaser loads it directly:
 

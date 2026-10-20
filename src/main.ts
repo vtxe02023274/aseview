@@ -1,5 +1,6 @@
 import { AseError, LayerType, readAse, type Sprite } from './ase.js';
 import { BLEND_MODES, compositeFrame } from './composite.js';
+import { encodeGif, GifError } from './gif.js';
 import { layoutSheet, sheetJson, tagSequence } from './sheet.js';
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
@@ -233,6 +234,30 @@ $('#export-frame').addEventListener('click', async () => {
   canvas.height = sprite.height;
   canvas.getContext('2d')!.drawImage(await frameImage(frame), 0, 0);
   canvas.toBlob((b) => b && download(`${fileName}-${frame}.png`, b), 'image/png');
+});
+
+$('#export-gif').addEventListener('click', () => {
+  if (!sprite) return;
+  const s = sprite;
+  // Plays the selected tag, or every frame.
+  const order = sequence.length ? sequence : s.frames.map((_, i) => i);
+  try {
+    const gif = encodeGif(
+      s.width,
+      s.height,
+      order.map((i) => ({
+        pixels: compositeFrame(s, i, { hidden }),
+        delay: s.frames[i]!.duration,
+      })),
+    );
+    const tag = s.tags[Number(tagSelect.value)];
+    download(
+      `${fileName}${tag ? `-${tag.name}` : ''}.gif`,
+      new Blob([gif as BlobPart], { type: 'image/gif' }),
+    );
+  } catch (err) {
+    message.textContent = err instanceof GifError ? err.message : String(err);
+  }
 });
 
 $('#export-sheet').addEventListener('click', async () => {

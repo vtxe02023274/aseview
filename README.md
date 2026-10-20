@@ -14,7 +14,9 @@
 - 圖層開關、群組、圖層與 cel 透明度、cel 的 z-index 排序
 - 圖塊地圖圖層（tilemap），含水平、垂直、對角翻轉
 - 照每格的時間播放，可以選標籤，支援 forward／reverse／ping-pong
-- 匯出目前影格 PNG，或整張 sprite sheet PNG＋JSON
+- 匯出目前影格 PNG、選定標籤的 GIF 動畫，或整張 sprite sheet PNG＋JSON
+
+GIF 用 sprite 裡的原色（最多 255 色），不抖色；超過 255 色會提示改用 sprite sheet。編碼器是自己寫的，用 Chrome 內建的 GIF 解碼器逐像素比對過。
 
 匯出的 JSON 跟 Aseprite 的「Array」格式一樣，影格名稱是編號，Phaser 可以直接用：
 
