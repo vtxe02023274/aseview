@@ -5,6 +5,7 @@ import { AseError, readAse, type Sprite } from '../src/ase.js';
 import { compositeFrame } from '../src/composite.js';
 import { layoutSheet, sheetJson, tagSequence } from '../src/sheet.js';
 import { stackSlices } from '../src/stack.js';
+import * as build from './build.js';
 
 const inflate = async (data: Uint8Array) => new Uint8Array(inflateSync(data));
 const load = (name: string) =>
@@ -122,6 +123,30 @@ describe('stackSlices', () => {
     expect(pixel(slices[1]!, s, 7, 7)).toEqual([122, 82, 48, 255]);
     expect(pixel(slices[1]!, s, 0, 0)).toEqual([0, 0, 0, 0]);
     expect(stackSlices(s, 'layers', 0, new Set([1, 2]))).toHaveLength(12);
+  });
+
+  it('keeps layers that sit in groups', async () => {
+    const s = await readAse(
+      build.aseFile(1, 1, [
+        build.frame([
+          build.layer('ground'),
+          build.layer('group', { type: 1 }),
+          build.layer('trunk', { level: 1 }),
+          build.layer('leaves', { level: 1 }),
+          build.cel(0, [0, 255, 0, 255]),
+          build.cel(2, [122, 82, 48, 255]),
+          build.cel(3, [0, 128, 0, 255]),
+        ]),
+      ]),
+      inflate,
+    );
+    const slices = stackSlices(s, 'layers', 0, new Set());
+    expect(slices.map((p) => Array.from(p))).toEqual([
+      [0, 255, 0, 255],
+      [122, 82, 48, 255],
+      [0, 128, 0, 255],
+    ]);
+    expect(stackSlices(s, 'layers', 0, new Set([1]))).toHaveLength(1);
   });
 
   it('uses frames as slices when asked', async () => {

@@ -19,9 +19,7 @@ export function stackSlices(
   const slices: Uint8ClampedArray[] = [];
   sprite.layers.forEach((layer, index) => {
     if (layer.type === LayerType.Group || hidden.has(index)) return;
-    const others = new Set(sprite.layers.map((_, i) => i).filter((i) => i !== index));
-    for (const h of hidden) others.add(h);
-    const pixels = compositeFrame(sprite, frame, { hidden: others });
+    const pixels = compositeFrame(sprite, frame, { hidden, only: index });
     // Layers hidden in the file or by a hidden group come out empty; skip them.
     if (pixels.some((v, i) => i % 4 === 3 && v > 0)) slices.push(pixels);
   });
