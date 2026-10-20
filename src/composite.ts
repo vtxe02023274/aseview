@@ -201,3 +201,44 @@ function blend(
   }
   out[o + 3] = Math.round(ra * 255);
 }
+
+/** Enlarges RGBA pixels by a whole factor, each pixel becoming a square block. */
+export function scalePixels(
+  pixels: Uint8ClampedArray,
+  width: number,
+  height: number,
+  scale: number,
+): Uint8ClampedArray {
+  if (scale === 1) return pixels;
+  const w = width * scale;
+  const out = new Uint8ClampedArray(w * height * scale * 4);
+  for (let y = 0; y < height; y++) {
+    const row = new Uint8ClampedArray(w * 4);
+    for (let x = 0; x < width; x++) {
+      const px = pixels.subarray((y * width + x) * 4, (y * width + x) * 4 + 4);
+      for (let i = 0; i < scale; i++) row.set(px, (x * scale + i) * 4);
+    }
+    for (let i = 0; i < scale; i++) out.set(row, (y * scale + i) * w * 4);
+  }
+  return out;
+}
+
+/** The sprite's size and slices as they are after scalePixels. */
+export function scaleSprite(sprite: Sprite, scale: number): Sprite {
+  if (scale === 1) return sprite;
+  return {
+    ...sprite,
+    width: sprite.width * scale,
+    height: sprite.height * scale,
+    slices: sprite.slices.map((s) => ({
+      ...s,
+      keys: s.keys.map((k) => ({
+        ...k,
+        x: k.x * scale,
+        y: k.y * scale,
+        width: k.width * scale,
+        height: k.height * scale,
+      })),
+    })),
+  };
+}

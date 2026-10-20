@@ -40,6 +40,25 @@ describe('cli', () => {
     expect(readFileSync(join(out, 'demo-jump.gif')).subarray(0, 6).toString()).toBe('GIF89a');
   });
 
+  it('scales the sheet, the JSON and the GIFs for pixel art', async () => {
+    const out = mkdtempSync(join(tmpdir(), 'aseview-'));
+    const demo = fileURLToPath(new URL('../public/demo.aseprite', import.meta.url));
+    expect(await run([demo, '-o', out, '--columns', '3', '--scale', '3', '--gif'], () => {})).toBe(
+      0,
+    );
+    const json = JSON.parse(readFileSync(join(out, 'demo.json'), 'utf8'));
+    expect(json.meta.size).toEqual({ w: 288, h: 192 });
+    expect(json.meta.scale).toBe('3');
+    expect(json.frames[4].frame).toEqual({ x: 96, y: 96, w: 96, h: 96 });
+
+    const png = readFileSync(join(out, 'demo.png'));
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([288, 192]);
+    const gif = readFileSync(join(out, 'demo-idle.gif'));
+    expect([gif.readUInt16LE(6), gif.readUInt16LE(8)]).toEqual([96, 96]);
+
+    expect(await run([demo, '--scale', '1.5'], () => {})).toBe(2);
+  });
+
   it('reports files it cannot read and bad options', async () => {
     const lines: string[] = [];
     expect(await run(['does-not-exist.aseprite'], (s) => lines.push(s))).toBe(1);

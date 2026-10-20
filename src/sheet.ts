@@ -31,7 +31,7 @@ export function layoutSheet(sprite: Sprite, columns = sprite.frames.length): She
  * Sprite sheet data in the same "array" JSON format Aseprite exports, which
  * Phaser, PixiJS and most engines can load directly.
  */
-export function sheetJson(sprite: Sprite, layout: SheetLayout, image: string) {
+export function sheetJson(sprite: Sprite, layout: SheetLayout, image: string, scale = 1) {
   const w = sprite.width;
   const h = sprite.height;
   return {
@@ -51,7 +51,7 @@ export function sheetJson(sprite: Sprite, layout: SheetLayout, image: string) {
       image,
       format: 'RGBA8888',
       size: { w: layout.width, h: layout.height },
-      scale: '1',
+      scale: String(scale),
       frameTags: sprite.tags.map((t) => ({
         name: t.name,
         from: t.from,

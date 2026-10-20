@@ -37,12 +37,13 @@ npx github:vtxe02023274/aseview hero.aseprite -o build/sprites --columns 8 --gif
 # hero.png, hero.json (Aseprite Array format) and one GIF per tag
 ```
 
-| Option            | Effect                                       |
-| ----------------- | -------------------------------------------- |
-| `-o, --out <dir>` | output folder, defaults to next to the file  |
-| `--columns <n>`   | frames per row in the sheet, default one row |
-| `--gif`           | also write one GIF per tag                   |
-| `--hide <layer>`  | leave a layer out by name, can be repeated   |
+| Option            | Effect                                                                          |
+| ----------------- | ------------------------------------------------------------------------------- |
+| `-o, --out <dir>` | output folder, defaults to next to the file                                     |
+| `--columns <n>`   | frames per row in the sheet, default one row                                    |
+| `--scale <n>`     | enlarge every pixel n times (nearest neighbor, for pixel art), the JSON follows |
+| `--gif`           | also write one GIF per tag                                                      |
+| `--hide <layer>`  | leave a layer out by name, can be repeated                                      |
 
 ## Limits
 

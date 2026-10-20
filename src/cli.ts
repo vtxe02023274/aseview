@@ -3,7 +3,7 @@ import { basename, extname, join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { deflateSync, inflateSync } from 'node:zlib';
 import { AseError, readAse } from './ase.js';
-import { compositeFrame } from './composite.js';
+import { compositeFrame, scalePixels, scaleSprite } from './composite.js';
 import { encodeGif, GifError } from './gif.js';
 import { encodePng } from './png.js';
 import { layoutSheet, sheetJson, tagSequence } from './sheet.js';
@@ -16,6 +16,7 @@ JSON Aseprite writes (Array format), or an animated GIF per tag.
 options:
   -o, --out <dir>      output folder (default: next to each file)
   --columns <n>        frames per row in the sheet (default: all in one row)
+  --scale <n>          enlarge every pixel n times, for pixel art (default: 1)
   --gif                also write one GIF per tag, or one for all frames
   --hide <layer>       leave a layer out by name, can be repeated
   -h, --help           show this help`;
@@ -29,6 +30,7 @@ export async function run(argv: string[], log: (s: string) => void = console.log
       options: {
         out: { type: 'string', short: 'o' },
         columns: { type: 'string' },
+        scale: { type: 'string' },
         gif: { type: 'boolean' },
         hide: { type: 'string', multiple: true },
         help: { type: 'boolean', short: 'h' },
@@ -48,6 +50,11 @@ export async function run(argv: string[], log: (s: string) => void = console.log
     log('--columns must be a positive number');
     return 2;
   }
+  const scale = values.scale === undefined ? 1 : Number(values.scale);
+  if (!Number.isInteger(scale) || scale < 1 || scale > 32) {
+    log('--scale must be a whole number from 1 to 32');
+    return 2;
+  }
 
   let failed = 0;
   for (const file of positionals) {
@@ -63,14 +70,19 @@ export async function run(argv: string[], log: (s: string) => void = console.log
       );
       mkdirSync(dir, { recursive: true });
 
-      const layout = layoutSheet(sprite, columns);
+      // Everything after compositing works on the scaled sprite.
+      const scaled = scaleSprite(sprite, scale);
+      const frame = (i: number) =>
+        scalePixels(compositeFrame(sprite, i, { hidden }), sprite.width, sprite.height, scale);
+
+      const layout = layoutSheet(scaled, columns);
       const sheet = new Uint8Array(layout.width * layout.height * 4);
       sprite.frames.forEach((_, i) => {
-        const px = compositeFrame(sprite, i, { hidden });
+        const px = frame(i);
         const { x, y } = layout.positions[i]!;
-        for (let row = 0; row < sprite.height; row++) {
+        for (let row = 0; row < scaled.height; row++) {
           sheet.set(
-            px.subarray(row * sprite.width * 4, (row + 1) * sprite.width * 4),
+            px.subarray(row * scaled.width * 4, (row + 1) * scaled.width * 4),
             ((y + row) * layout.width + x) * 4,
           );
         }
@@ -82,7 +94,7 @@ export async function run(argv: string[], log: (s: string) => void = console.log
       );
       writeFileSync(
         join(dir, `${name}.json`),
-        JSON.stringify(sheetJson(sprite, layout, png), null, 1) + '\n',
+        JSON.stringify(sheetJson(scaled, layout, png, scale), null, 1) + '\n',
       );
       const written = [png, `${name}.json`];
 
@@ -95,10 +107,10 @@ export async function run(argv: string[], log: (s: string) => void = console.log
           : [{ suffix: '', order: sprite.frames.map((_, i) => i) }];
         for (const { suffix, order } of groups) {
           const gif = encodeGif(
-            sprite.width,
-            sprite.height,
+            scaled.width,
+            scaled.height,
             order.map((i) => ({
-              pixels: compositeFrame(sprite, i, { hidden }),
+              pixels: frame(i),
               delay: sprite.frames[i]!.duration,
             })),
           );
