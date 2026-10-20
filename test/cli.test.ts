@@ -108,6 +108,7 @@ describe('cli', () => {
     const lines: string[] = [];
     expect(await run(['does-not-exist.aseprite'], (s) => lines.push(s))).toBe(1);
     expect(await run(['x', '--columns', '0'], (s) => lines.push(s))).toBe(2);
+    expect(await run(['x', '--columns', '2.5'], (s) => lines.push(s))).toBe(2);
     expect(await run([], (s) => lines.push(s))).toBe(2);
   });
 });

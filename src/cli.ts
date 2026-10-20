@@ -53,8 +53,8 @@ export async function run(argv: string[], log: (s: string) => void = console.log
     return values.help ? 0 : 2;
   }
   const columns = values.columns === undefined ? undefined : Number(values.columns);
-  if (columns !== undefined && !(columns >= 1)) {
-    log('--columns must be a positive number');
+  if (columns !== undefined && !(Number.isInteger(columns) && columns >= 1)) {
+    log('--columns must be a whole number of 1 or more');
     return 2;
   }
   const scale = values.scale === undefined ? 1 : Number(values.scale);
