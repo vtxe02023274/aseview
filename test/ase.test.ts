@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { AseError, readAse, type Sprite } from '../src/ase.js';
 import { compositeFrame } from '../src/composite.js';
 import { layoutSheet, sheetJson, tagSequence } from '../src/sheet.js';
+import { stackSlices } from '../src/stack.js';
 
 const inflate = async (data: Uint8Array) => new Uint8Array(inflateSync(data));
 const load = (name: string) =>
@@ -99,5 +100,22 @@ describe('sheet', () => {
     expect(tagSequence(2, 5, 'pingpong')).toEqual([2, 3, 4, 5, 4, 3]);
     expect(tagSequence(2, 5, 'pingpong-reverse')).toEqual([5, 4, 3, 2, 3, 4]);
     expect(tagSequence(1, 1, 'pingpong')).toEqual([1]);
+  });
+});
+
+describe('stackSlices', () => {
+  it('makes one slice per visible image layer, bottom first', async () => {
+    const s = await load('../public/stack-demo.aseprite');
+    const slices = stackSlices(s, 'layers', 0, new Set());
+    expect(slices).toHaveLength(14);
+    // Slice 1 is the trunk: the center is brown and the corner empty.
+    expect(pixel(slices[1]!, s, 7, 7)).toEqual([122, 82, 48, 255]);
+    expect(pixel(slices[1]!, s, 0, 0)).toEqual([0, 0, 0, 0]);
+    expect(stackSlices(s, 'layers', 0, new Set([1, 2]))).toHaveLength(12);
+  });
+
+  it('uses frames as slices when asked', async () => {
+    const s = await load('../public/demo.aseprite');
+    expect(stackSlices(s, 'frames', 0, new Set())).toHaveLength(6);
   });
 });
