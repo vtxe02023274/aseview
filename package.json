@@ -1,10 +1,29 @@
 {
   "name": "aseview",
   "version": "0.1.0",
-  "private": true,
   "description": "View Aseprite files in the browser and export sprite sheets.",
+  "keywords": [
+    "aseprite",
+    "ase",
+    "sprite-sheet",
+    "spritesheet",
+    "pixel-art",
+    "gif",
+    "phaser",
+    "pixijs",
+    "gamedev",
+    "cli"
+  ],
+  "homepage": "https://github.com/vtxe02023274/aseview#readme",
+  "bugs": {
+    "url": "https://github.com/vtxe02023274/aseview/issues"
+  },
   "license": "MIT",
-  "author": "冷牛",
+  "author": "Leng Niu",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vtxe02023274/aseview.git"
+  },
   "type": "module",
   "scripts": {
     "build": "esbuild src/main.ts --bundle --format=esm --target=es2022 --minify --sourcemap --outfile=site/main.js && node -e \"const f=require('fs');f.copyFileSync('public/index.html','site/index.html');f.copyFileSync('public/demo.aseprite','site/demo.aseprite');f.copyFileSync('public/stack-demo.aseprite','site/stack-demo.aseprite')\"",
@@ -14,7 +33,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "build:cli": "tsc -p tsconfig.build.json",
-    "prepare": "tsc -p tsconfig.build.json"
+    "prepare": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "tsc -p tsconfig.build.json && npm test"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -31,5 +51,8 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "engines": {
+    "node": ">=20"
+  }
 }
