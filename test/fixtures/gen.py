@@ -30,6 +30,10 @@ chunks0.append(chunk(0x0004, struct.pack("<HBB", 1, 0, 2) + bytes([0, 0, 0, 255,
 # Sprite user data: text + color
 chunks0.append(chunk(0x2020, struct.pack("<I", 3) + s("hello") + bytes([10, 20, 30, 255])))
 
+# Tileset before the layers that use it, as Aseprite writes it: 2 tiles of 4x4 RGBA
+tiles = zlib.compress(bytes([255, 255, 255, 255] * 16 + [0, 0, 0, 255] * 16))
+chunks0.append(chunk(0x2023, struct.pack("<IIIHHh", 0, 2 | 4, 2, 4, 4, 1) + bytes(14) + s("Ground") + struct.pack("<I", len(tiles)) + tiles))
+
 def layer(flags, ltype, level, name, extra=b""):
     return chunk(0x2004, struct.pack("<HHHHHHB", flags, ltype, level, 0, 0, 0, 255) + bytes(3) + s(name) + extra + (uuid.UUID(int=len(name)).bytes if uuid_flag else b""))
 
@@ -40,10 +44,6 @@ chunks0.append(layer(3, 2, 0, "Tiles", struct.pack("<I", 0)))
 # Layer user data: properties map with a bool and an int32
 props = struct.pack("<II", 0, 2) + s("solid") + struct.pack("<HB", 1, 1) + s("hp") + struct.pack("<Hi", 6, 100)
 chunks0.append(chunk(0x2020, struct.pack("<I", 4) + struct.pack("<II", 8 + len(props), 1) + props))
-
-# Tileset: 2 tiles of 4x4 RGBA, embedded
-tiles = zlib.compress(bytes([255, 255, 255, 255] * 16 + [0, 0, 0, 255] * 16))
-chunks0.append(chunk(0x2023, struct.pack("<IIIHHh", 0, 2 | 4, 2, 4, 4, 1) + bytes(14) + s("Ground") + struct.pack("<I", len(tiles)) + tiles))
 
 def cel(layer_index, x, y, ctype, body):
     return chunk(0x2005, struct.pack("<HhhBHh", layer_index, x, y, 255, ctype, 0) + bytes(5) + body)
