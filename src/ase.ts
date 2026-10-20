@@ -158,6 +158,7 @@ export async function readAse(bytes: Uint8Array, inflate: Inflate): Promise<Spri
   r.u32(); // file size
   if (r.u16() !== 0xa5e0) throw new AseError('not an Aseprite file (bad magic number)');
   const frameCount = r.u16();
+  if (frameCount === 0) throw new AseError('the sprite has no frames');
   const width = r.u16();
   const height = r.u16();
   const depth = r.u16();
@@ -223,7 +224,7 @@ export async function readAse(bytes: Uint8Array, inflate: Inflate): Promise<Spri
           break;
         }
         case 0x2018:
-          sprite.tags.push(...readTags(r));
+          sprite.tags.push(...readTags(r, frameCount));
           break;
         case 0x2019:
           hasNewPalette = true;
@@ -398,7 +399,7 @@ async function readCel(
   }
 }
 
-function readTags(r: Reader): Tag[] {
+function readTags(r: Reader, frameCount: number): Tag[] {
   const count = r.u16();
   r.skip(8);
   const tags: Tag[] = [];
@@ -410,7 +411,9 @@ function readTags(r: Reader): Tag[] {
     r.skip(6);
     const color: [number, number, number] = [r.u8(), r.u8(), r.u8()];
     r.skip(1);
-    tags.push({ name: r.string(), from, to, direction, repeat, color });
+    const name = r.string();
+    if (from > to || to >= frameCount) throw new AseError(`tag "${name}" goes past the last frame`);
+    tags.push({ name, from, to, direction, repeat, color });
   }
   return tags;
 }
