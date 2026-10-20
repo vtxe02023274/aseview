@@ -81,6 +81,8 @@ export interface Sprite {
   transparentIndex: number;
   /** Whether layer opacity values in the file are meaningful. */
   layerOpacity: boolean;
+  /** Whether group layers have a meaningful opacity of their own (header flag 2). */
+  groupOpacity: boolean;
   /** RGBA, 4 bytes per entry. */
   palette: Uint8Array;
   layers: Layer[];
@@ -174,6 +176,7 @@ export async function readAse(bytes: Uint8Array, inflate: Inflate): Promise<Spri
     depth,
     transparentIndex,
     layerOpacity: (flags & 1) !== 0,
+    groupOpacity: (flags & 2) !== 0,
     palette: defaultPalette(),
     layers: [],
     frames: [],

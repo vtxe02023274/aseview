@@ -67,6 +67,16 @@ describe('compositeFrame', () => {
     expect(pixel(img, s, 16, 22)).toEqual([0, 0, 0, 0]);
   });
 
+  it('only applies group opacity when the header says it is valid', async () => {
+    const s = await load('./fixtures/sample.aseprite');
+    // Layer 2 "Child" sits in group 1; its raw cel covers (1, 1).
+    s.layers[1]!.opacity = 0;
+    s.groupOpacity = false;
+    expect(pixel(compositeFrame(s, 0, { hidden: new Set([0, 3]) }), s, 1, 1)[3]).toBeGreaterThan(0);
+    s.groupOpacity = true;
+    expect(pixel(compositeFrame(s, 0, { hidden: new Set([0, 3]) }), s, 1, 1)[3]).toBe(0);
+  });
+
   it('draws tilemap cels from the tileset with flips', async () => {
     const s = await load('./fixtures/sample.aseprite');
     const img = compositeFrame(s, 0, { hidden: new Set([0, 2]) });

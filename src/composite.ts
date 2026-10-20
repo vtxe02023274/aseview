@@ -59,9 +59,13 @@ function layerShown(sprite: Sprite, index: number, options: CompositeOptions): b
 }
 
 function effectiveOpacity(sprite: Sprite, index: number): number {
-  let opacity = 1;
-  for (let i = index; i >= 0; i = sprite.layers[i]!.parent)
-    opacity *= sprite.layers[i]!.opacity / 255;
+  let opacity = sprite.layers[index]!.opacity / 255;
+  // Group opacity only counts when the file says so; older files leave it at 0.
+  if (sprite.groupOpacity) {
+    for (let i = sprite.layers[index]!.parent; i >= 0; i = sprite.layers[i]!.parent) {
+      opacity *= sprite.layers[i]!.opacity / 255;
+    }
+  }
   return opacity;
 }
 
