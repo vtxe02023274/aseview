@@ -22,6 +22,11 @@ options:
   --hide <layer>       leave a layer out by name, can be repeated
   -h, --help           show this help`;
 
+/** Layer and tag names as part of a file name, with nothing that leaves the folder. */
+function namePart(name: string): string {
+  return name.replace(/[^\w.-]+/g, '_');
+}
+
 export async function run(argv: string[], log: (s: string) => void = console.log): Promise<number> {
   let args;
   try {
@@ -106,9 +111,8 @@ export async function run(argv: string[], log: (s: string) => void = console.log
       if (values['split-layers']) {
         sprite.layers.forEach((layer, index) => {
           if (layer.type === LayerType.Group || !layerShown(sprite, index, { hidden })) return;
-          const safe = layer.name.replace(/[^\w.-]+/g, '_');
           written.push(
-            ...writeSheet(`${name}-${safe}`, (i) =>
+            ...writeSheet(`${name}-${namePart(layer.name)}`, (i) =>
               scalePixels(
                 compositeFrame(sprite, i, { hidden, only: index }),
                 sprite.width,
@@ -123,7 +127,7 @@ export async function run(argv: string[], log: (s: string) => void = console.log
       if (values.gif) {
         const groups = sprite.tags.length
           ? sprite.tags.map((t) => ({
-              suffix: `-${t.name}`,
+              suffix: `-${namePart(t.name)}`,
               order: tagSequence(t.from, t.to, t.direction),
             }))
           : [{ suffix: '', order: sprite.frames.map((_, i) => i) }];
