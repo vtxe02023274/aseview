@@ -56,7 +56,8 @@ export function sheetJson(sprite: Sprite, layout: SheetLayout, image: string, sc
         name: t.name,
         from: t.from,
         to: t.to,
-        direction: t.direction,
+        // Aseprite writes pingpong_reverse with an underscore.
+        direction: t.direction.replace('-', '_'),
         ...(t.repeat ? { repeat: String(t.repeat) } : {}),
       })),
       layers: sprite.layers.map((l) => ({

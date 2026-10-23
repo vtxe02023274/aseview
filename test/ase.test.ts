@@ -147,6 +147,13 @@ describe('sheet', () => {
     expect(layoutSheet(s, 2.5).positions[1]).toEqual({ x: 32, y: 0 });
   });
 
+  it('writes pingpong_reverse the way Aseprite does', async () => {
+    const s = await load('../public/demo.aseprite');
+    s.tags[0]!.direction = 'pingpong-reverse';
+    const json = sheetJson(s, layoutSheet(s, 4), 'demo.png');
+    expect(json.meta.frameTags[0]!.direction).toBe('pingpong_reverse');
+  });
+
   it('plays tags in every direction', () => {
     expect(tagSequence(2, 5, 'forward')).toEqual([2, 3, 4, 5]);
     expect(tagSequence(2, 5, 'reverse')).toEqual([5, 4, 3, 2]);
