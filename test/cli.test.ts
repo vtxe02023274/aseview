@@ -41,6 +41,18 @@ describe('cli', () => {
     expect(readFileSync(join(out, 'demo-jump.gif')).subarray(0, 6).toString()).toBe('GIF89a');
   });
 
+  it('keeps both outputs when two inputs share a name', async () => {
+    const out = mkdtempSync(join(tmpdir(), 'aseview-'));
+    const demo = readFileSync(fileURLToPath(new URL('../public/demo.aseprite', import.meta.url)));
+    const inputs = ['a', 'b'].map((dir) => {
+      const path = join(mkdtempSync(join(tmpdir(), `aseview-${dir}-`)), 'hero.aseprite');
+      writeFileSync(path, demo);
+      return path;
+    });
+    expect(await run([...inputs, '-o', out], () => {})).toBe(0);
+    expect(readdirSync(out).sort()).toEqual(['hero-2.json', 'hero-2.png', 'hero.json', 'hero.png']);
+  });
+
   it('scales the sheet, the JSON and the GIFs for pixel art', async () => {
     const out = mkdtempSync(join(tmpdir(), 'aseview-'));
     const demo = fileURLToPath(new URL('../public/demo.aseprite', import.meta.url));

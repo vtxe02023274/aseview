@@ -1,5 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { basename, extname, join } from 'node:path';
+import { basename, extname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { deflateSync, inflateSync } from 'node:zlib';
 import { AseError, LayerType, readAse } from './ase.js';
@@ -81,9 +81,12 @@ export async function run(argv: string[], log: (s: string) => void = console.log
   }
 
   let failed = 0;
+  const namesPerDir = new Map<string, (name: string) => string>();
   for (const file of positionals) {
-    const name = basename(file, extname(file));
     const dir = values.out ?? join(file, '..');
+    const dirKey = resolve(dir).toLowerCase();
+    if (!namesPerDir.has(dirKey)) namesPerDir.set(dirKey, uniqueNames());
+    const name = namesPerDir.get(dirKey)!(basename(file, extname(file)));
     try {
       const sprite = await readAse(
         new Uint8Array(readFileSync(file)),
